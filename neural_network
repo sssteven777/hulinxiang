@@ -1,0 +1,82 @@
+import numpy
+import scipy.special
+from keras.datasets import mnist
+from keras.utils import to_categorical
+import matplotlib.pyplot as plt
+
+
+
+(train_images,train_labels),(test_images,test_labels) = mnist.load_data()
+train_images = train_images.reshape((60000,28*28))
+train_images = train_images.astype('float32') / 255
+test_images = test_images.reshape((10000,28*28))
+test_images = test_images.astype('float32') / 255
+
+train_labels = to_categorical(train_labels)
+test_labels = to_categorical(test_labels)
+
+
+class Neuralnetwork():
+    def __init__(self,input_nodes,hidden_nodes,output_nodes,learning_rate):
+        self.input_nodes = input_nodes
+        self.hidden_nodes = hidden_nodes
+        self.output_nodes = output_nodes
+        self.learning_rate = learning_rate
+        self.wih = numpy.random.rand(self.hidden_nodes,self.input_nodes) - 0.5
+        self.who = numpy.random.rand(self.output_nodes,self.hidden_nodes) - 0.5
+
+
+
+    def fit(self,input_list,target_list):
+        inputs = numpy.array(input_list,ndmin=2).T
+        targets = numpy.array(target_list,ndmin=2).T
+        hidden_inputs = numpy.dot(self.wih,inputs)
+        sigmoid = lambda x:scipy.special.expit(x)
+        hidden_outputs = sigmoid(hidden_inputs)
+        final_inputs = numpy.dot(self.who,hidden_outputs)
+        final_outputs = sigmoid(final_inputs)
+        output_errors = targets - final_outputs
+        hidden_errors = numpy.dot(self.who.T,output_errors)
+        self.who += self.learning_rate * numpy.dot((output_errors * final_outputs) * (
+                1 - final_outputs),numpy.transpose(hidden_outputs))
+        self.wih += self.learning_rate * numpy.dot((hidden_errors * hidden_outputs) * (
+                1- hidden_outputs),numpy.transpose(inputs))
+
+
+
+    def evaluate(self,inputs):
+        hidden_inputs = numpy.dot(self.wih,inputs)
+        sigmoid = lambda x:scipy.special.expit(x)
+        hidden_outputs = sigmoid(hidden_inputs)
+        final_inputs = numpy.dot(self.who,hidden_outputs)
+        final_outputs = sigmoid(final_inputs)
+        return final_outputs
+
+
+
+
+
+
+input_nodes = 784
+hidden_nodes = 50
+output_nodes = 10
+learning_rate = 0.1
+network = Neuralnetwork(input_nodes,hidden_nodes,output_nodes,learning_rate)
+
+for train_image,train_label in zip(train_images,train_labels):
+    network.fit(train_image,train_label)
+
+scores =[]
+for test_image,test_label in zip(test_images,test_labels):
+    output = network.evaluate(test_image)
+    evaluate_label = numpy.argmax(output)
+    correct_label = numpy.argmax(test_label)
+    if evaluate_label == correct_label:
+        scores.append(1)
+    else:
+        scores.append(0)
+scores_array = numpy.asarray(scores)
+image =test_image[0]
+
+
+print(scores_array.sum()/scores_array.size)
